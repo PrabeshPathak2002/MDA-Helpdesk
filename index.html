@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MDA IT Helpdesk Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #003366; /* Official-looking state government blue */
+            --bot-bg: #f1f5f9;
+            --user-bg: #00509e;
+            --text-dark: #1e293b;
+            --text-light: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e2e8f0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-bottom: 3px solid #facc15; /* Yellow accent */
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            line-height: 1.4;
+            font-size: 0.95rem;
+        }
+        /* Markdown overrides inside the chat bubble */
+        .message p { margin: 0 0 8px 0; }
+        .message p:last-child { margin: 0; }
+        .message ul, .message ol { margin: 5px 0; padding-left: 20px; }
+        
+        .bot-message {
+            background-color: var(--bot-bg);
+            color: var(--text-dark);
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+        }
+        .user-message {
+            background-color: var(--user-bg);
+            color: var(--text-light);
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+        .escalated-badge {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #f87171;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: inline-block;
+            font-weight: bold;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+        #user-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            outline: none;
+            font-size: 1rem;
+        }
+        #user-input:focus {
+            border-color: var(--primary-blue);
+        }
+        #send-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            margin-left: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        #send-btn:hover {
+            background-color: #002244;
+        }
+        #send-btn:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            color: #64748b;
+            font-size: 0.9rem;
+            font-style: italic;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        MDA IT Support Assistant 
+    </div>
+    
+    <div class="chat-messages" id="chat-messages">
+        <div class="message bot-message">
+            <p>Hello! I am the MDA IT Helpdesk Assistant. How can I help you today? (e.g., "How do I connect to Wi-Fi?" or "My Teams camera isn't working")</p>
+        </div>
+    </div>
+    
+    <div class="typing-indicator" id="typing-indicator">
+        Assistant is typing...
+    </div>
+
+    <div class="chat-input-area">
+        <input type="text" id="user-input" placeholder="Type your issue here..." autocomplete="off">
+        <button id="send-btn">Send</button>
+    </div>
+</div>
+
+<script>
+    // --- The AWS API Gateway Connection ---
+    const API_URL = 'https://vn1spddkq1.execute-api.us-east-1.amazonaws.com/chat';
+    
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const typingIndicator = document.getElementById('typing-indicator');
+
+    // Handle Enter key press
+    userInput.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Handle Send button click
+    sendBtn.addEventListener('click', sendMessage);
+
+    async function sendMessage() {
+        const query = userInput.value.trim();
+        if (!query) return;
+
+        // 1. Add user message to UI
+        addMessage(query, 'user');
+        userInput.value = '';
+        
+        // 2. Show loading state
+        sendBtn.disabled = true;
+        typingIndicator.style.display = 'block';
+        chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll
+
+        try {
+            // 3. Send data to your AWS Lambda backend
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: query })
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            const data = await response.json();
+
+            // 4. Add the AI's response to the UI
+            addMessage(data.response, 'bot', data.escalated);
+
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage("Sorry, I'm having trouble connecting to the network right now. Please try again later.", 'bot');
+        } finally {
+            // 5. Remove loading state
+            sendBtn.disabled = false;
+            typingIndicator.style.display = 'none';
+            userInput.focus();
+        }
+    }
+
+    function addMessage(text, sender, isEscalated = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message');
+        messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+        
+        let innerContent = '';
+        
+        // Add the red escalation badge if your Lambda guardrail triggered
+        if (isEscalated) {
+            innerContent += '<div class="escalated-badge">⚠️ Human Routing Required</div>';
+        }
+
+        // Render Markdown for the bot, keep plain text for the user
+        if (sender === 'bot') {
+            innerContent += marked.parse(text); 
+        } else {
+            innerContent += text;
+        }
+
+        messageDiv.innerHTML = innerContent;
+        chatMessages.appendChild(messageDiv);
+        
+        // Scroll to the bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
