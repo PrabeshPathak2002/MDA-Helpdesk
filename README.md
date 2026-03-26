@@ -15,9 +15,9 @@ By guiding users toward existing self-service resources and answering common que
 * **Audit Logging:** Full interaction logging for quality assurance and compliance.
 
 ## The Team (University of Southern Mississippi)
-* **Prabesh Pathak:** AI & Backend Lead (LLM Exploration, Conversational Logic)
-* **Dikesh Shrestha:** Systems Integration & DevOps Lead (Environment Setup, API Integration)
-* **Aavash Tiwari:** Frontend & Data Engineering Lead (Knowledge Base Ingestion, UI/UX)
+* **Prabesh Pathak:** AI & FullStack Lead (LLM Exploration, Conversational Logic, API creation, AWS)
+* **Dikesh Shrestha:** Systems Integration (Environment Setup, API Integration)
+* **Aavash Tiwari:** Frontend (UI/UX)
 
 ## Getting Started
 
