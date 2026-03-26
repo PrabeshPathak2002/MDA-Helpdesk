@@ -30,5 +30,5 @@ By guiding users toward existing self-service resources and answering common que
 ### Initial Setup
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/your-username/mda-helpdesk-assistant.git](https://github.com/your-username/mda-helpdesk-assistant.git)
-   cd mda-helpdesk-assistant
+   git clone [https://github.com/PrabeshPathak2002/mda-helpdesk.git](https://github.com/PrabeshPathak2002/mda-helpdesk.git)
+   cd mda-helpdesk
