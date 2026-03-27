@@ -4,6 +4,10 @@ import os
 
 bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
 bedrock_agent_runtime = boto3.client('bedrock-agent-runtime', region_name='us-east-1')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+
+# Connect to the new DynamoDB table
+table = dynamodb.Table('MDA-Chat-Sessions')
 
 def lambda_handler(event, context):
     try:
@@ -12,7 +16,8 @@ def lambda_handler(event, context):
             body = json.loads(body)
             
         user_query = body.get('query', '')
-        image_base64 = body.get('image_base64') # Get the image if it exists
+        image_base64 = body.get('image_base64')
+        user_id = body.get('user_id', 'anonymous-user') # Get the user ID from the frontend
         
         if not user_query and not image_base64:
             return {
@@ -23,7 +28,7 @@ def lambda_handler(event, context):
             
         user_query_lower = user_query.lower().strip()
         
-        # --- Chit-Chat & Escalation Guardrails (Unchanged) ---
+        # --- Guardrails ---
         greetings = ['hi', 'hello', 'hey', 'good morning', 'test']
         if user_query_lower in greetings and not image_base64:
             return {
@@ -40,10 +45,17 @@ def lambda_handler(event, context):
                 'body': json.dumps({'response': 'It looks like you need help with a system that requires specialized administrative access. Please contact IT Operations at 601-359-2909.', 'escalated': True})
             }
 
-        # --- NEW: Step 1 - Multimodal Vision Processing ---
-        # If an image is provided, ask Nova to read the error text off the screen
+        # --- MEMORY: Lookup previous session in DynamoDB ---
+        bedrock_session_id = None
+        try:
+            db_response = table.get_item(Key={'UserId': user_id})
+            if 'Item' in db_response:
+                bedrock_session_id = db_response['Item'].get('SessionId')
+        except Exception as e:
+            print(f"DynamoDB Read Error: {e}")
+
+        # --- Vision Processing ---
         enhanced_query = user_query
-        
         if image_base64:
             vision_response = bedrock_runtime.converse(
                 modelId='amazon.nova-lite-v1:0',
@@ -58,24 +70,25 @@ def lambda_handler(event, context):
                 ]
             )
             extracted_image_text = vision_response['output']['message']['content'][0]['text']
-            # Combine the user's typed question with the text extracted from their screenshot
             enhanced_query = f"User Question: {user_query}. Screenshot Details: {extracted_image_text}"
 
-
-        # --- Step 2: Bedrock RAG Pipeline ---
+        # --- Bedrock RAG Pipeline ---
         knowledge_base_id = os.environ.get('KNOWLEDGE_BASE_ID') 
         model_arn = os.environ.get('MODEL_ARN', 'arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-lite-v1:0')
         
         strict_prompt = """You are the official IT Helpdesk Assistant for the Mississippi Development Authority. 
-        Answer using ONLY the search results. If a rule requires escalation, state it clearly.
-        NEVER guess or hallucinate steps. If there is no relevant info, reply exactly: "I apologize, but I do not have approved documentation for that specific issue. Please contact the IT Operations Helpdesk at 601-359-2909."
+        Answer using ONLY the search results. 
+        If the user asks for a password or specific detail, but the documentation states they must use their personal credentials or an alternative method, explicitly explain that rule.
+        If a user states they do not have the required credentials, access, or equipment to follow a procedure, DO NOT list the procedure steps. Immediately stop and tell them to contact the Helpdesk.
+        NEVER guess or hallucinate steps or passwords. If the user's issue is completely missing from the documents, reply exactly: "I apologize, but I do not have approved documentation for that specific issue. Please contact the IT Operations Helpdesk at 601-359-2909."
         
         Search results: $search_results$
-        User query/screenshot details: $query$"""
+        User query/context: $query$"""
         
-        response = bedrock_agent_runtime.retrieve_and_generate(
-            input={'text': enhanced_query},
-            retrieveAndGenerateConfiguration={
+        # Build the API payload
+        api_kwargs = {
+            'input': {'text': enhanced_query},
+            'retrieveAndGenerateConfiguration': {
                 'type': 'KNOWLEDGE_BASE',
                 'knowledgeBaseConfiguration': {
                     'knowledgeBaseId': knowledge_base_id,
@@ -85,8 +98,22 @@ def lambda_handler(event, context):
                     }
                 }
             }
-        )
+        }
         
+        # If we found an old session ID, inject it into the payload so Bedrock remembers!
+        if bedrock_session_id:
+            api_kwargs['sessionId'] = bedrock_session_id
+            
+        response = bedrock_agent_runtime.retrieve_and_generate(**api_kwargs)
+        
+        # --- MEMORY: Save the updated session ID back to DynamoDB ---
+        new_session_id = response.get('sessionId')
+        if new_session_id:
+            try:
+                table.put_item(Item={'UserId': user_id, 'SessionId': new_session_id})
+            except Exception as e:
+                print(f"DynamoDB Write Error: {e}")
+
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
@@ -98,5 +125,5 @@ def lambda_handler(event, context):
         return {
             'statusCode': 500,
             'headers': {'Access-Control-Allow-Origin': '*'},
-            'body': json.dumps({'error': 'Internal server error processing the image or connecting to the KB.'})
+            'body': json.dumps({'error': 'Internal server error processing the query.'})
         }
