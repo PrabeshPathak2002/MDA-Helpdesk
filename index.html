@@ -3,155 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MDA IT Helpdesk Assistant</title>
+    <title>MDA IT Support</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
-            --primary-blue: #003366;
-            --bot-bg: #f1f5f9;
-            --user-bg: #00509e;
-            --text-dark: #1e293b;
+            /* Official MDA Brand Colors */
+            --mda-blue: #3064AB; 
+            --bot-bubble: #F0EBD6; 
+            
+            /* Minimalist Theme Variables */
+            --bg-color: #f8fafc;
+            --chat-bg: #ffffff;
+            --user-bubble: #3064AB;
+            --text-dark: #334155;
             --text-light: #ffffff;
+            --border-color: #e2e8f0;
+            --font-main: 'Avenir', 'Helvetica Neue', Helvetica, Arial, sans-serif;
         }
+
+        body.dark-theme {
+            --bg-color: #0f172a;
+            --chat-bg: #1e293b;
+            --bot-bubble: #334155;
+            --user-bubble: #60a5fa;
+            --text-dark: #f8fafc;
+            --border-color: #334155;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #e2e8f0;
+            font-family: var(--font-main);
+            background-color: var(--bg-color);
+            color: var(--text-dark);
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            transition: background-color 0.3s ease;
         }
+
         .chat-container {
             width: 100%;
-            max-width: 450px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 480px; 
+            background: var(--chat-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06); 
             display: flex;
             flex-direction: column;
-            height: 80vh;
+            height: 85vh;
             overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: background 0.3s, border-color 0.3s;
         }
+
         .chat-header {
-            background-color: var(--primary-blue);
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-weight: bold;
+            background-color: var(--chat-bg);
+            color: var(--mda-blue);
+            padding: 24px 24px 16px 24px;
+            font-weight: 600;
             font-size: 1.2rem;
-            border-bottom: 3px solid #facc15;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: -0.3px;
         }
+
+        #theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        
+        #theme-toggle svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        #theme-toggle:hover {
+            transform: rotate(15deg) scale(1.1);
+        }
+
         .chat-messages {
             flex: 1;
-            padding: 20px;
+            padding: 24px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 20px; 
         }
+
         .message {
             max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 8px;
-            line-height: 1.4;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.5;
             font-size: 0.95rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
+        
         .message p { margin: 0 0 8px 0; }
         .message p:last-child { margin: 0; }
-        .message ul, .message ol { margin: 5px 0; padding-left: 20px; }
-        
+
         .bot-message {
-            background-color: var(--bot-bg);
+            background-color: var(--bot-bubble);
             color: var(--text-dark);
             align-self: flex-start;
-            border-bottom-left-radius: 0;
+            border-bottom-left-radius: 4px;
         }
+
         .user-message {
-            background-color: var(--user-bg);
+            background-color: var(--user-bubble);
             color: var(--text-light);
             align-self: flex-end;
-            border-bottom-right-radius: 0;
+            border-bottom-right-radius: 4px;
         }
+        
+        body.dark-theme .user-message {
+            color: #0f172a; 
+        }
+
+        /* --- NEW: Dynamic Image Preview Chip --- */
+        #image-preview-container {
+            display: none; /* Completely invisible by default */
+            align-items: center;
+            padding: 6px 12px;
+            background: var(--bg-color); /* Matches the outer background */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin: 0 24px 12px 24px; /* Floats perfectly above the input box */
+            width: fit-content;
+            animation: slideIn 0.2s ease-out;
+        }
+        
+        #image-preview {
+            max-height: 36px; 
+            border-radius: 4px; 
+            margin-right: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        #remove-image-btn {
+            background: rgba(239, 68, 68, 0.1); 
+            border: none; 
+            color: #ef4444; 
+            cursor: pointer; 
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        #remove-image-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        #remove-image-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+        /* -------------------------------------- */
+
+        /* Minimalist Input Area */
+        .chat-input-area {
+            display: flex;
+            padding: 0 24px 20px 24px; /* Adjusted padding to accommodate the floating chip */
+            background: var(--chat-bg);
+            align-items: center;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-dark);
+            border-radius: 24px; 
+            outline: none;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        #user-input:focus {
+            border-color: var(--mda-blue);
+            box-shadow: 0 0 0 3px rgba(48, 100, 171, 0.1);
+        }
+
+        /* Google-Style Mic */
+        #mic-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        #mic-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: #94a3b8;
+            transition: fill 0.3s;
+        }
+        
+        #mic-btn:hover { transform: scale(1.1); }
+        
+        .listening svg {
+            fill: #ea4335;
+            animation: pulse 1.2s infinite;
+        }
+
+        #send-btn {
+            background-color: var(--mda-blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin-left: 8px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s, opacity 0.2s;
+            font-family: inherit;
+        }
+
+        #send-btn:hover { background-color: #234c85; }
+        #send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Minimalist Prediction Chips */
+        .chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+        
+        .chip-btn {
+            background-color: transparent;
+            color: var(--mda-blue);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .chip-btn:hover {
+            background-color: rgba(48, 100, 171, 0.05);
+            border-color: var(--mda-blue);
+        }
+        
+        body.dark-theme .chip-btn {
+            color: var(--user-bubble);
+        }
+        body.dark-theme .chip-btn:hover {
+            background-color: rgba(96, 165, 250, 0.1);
+        }
+
         .escalated-badge {
             background-color: #fee2e2;
             color: #991b1b;
             border: 1px solid #f87171;
             font-size: 0.8rem;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 6px;
             margin-bottom: 8px;
             display: inline-block;
-            font-weight: bold;
+            font-weight: 600;
         }
+
         .typing-indicator {
             display: none;
             align-self: flex-start;
-            color: #64748b;
-            font-size: 0.9rem;
+            color: #94a3b8;
+            font-size: 0.85rem;
+            margin: 0 24px 10px 24px;
             font-style: italic;
-            margin: 0 20px 10px 20px;
-        }
-        
-        /* New styles for the image preview area */
-        #image-preview-container {
-            display: none; 
-            padding: 10px 15px; 
-            background: #f8fafc; 
-            border-top: 1px solid #e2e8f0; 
-            text-align: right;
-        }
-        #image-preview {
-            max-height: 50px; 
-            border-radius: 4px; 
-            border: 1px solid #cbd5e1; 
-            vertical-align: middle;
-        }
-        #remove-image-btn {
-            background: none; 
-            border: none; 
-            color: #ef4444; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin-left: 10px; 
-            vertical-align: middle;
-            font-size: 1rem;
         }
 
-        .chat-input-area {
-            display: flex;
-            padding: 15px;
-            background: white;
-            border-top: 1px solid #e2e8f0;
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        #user-input {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            outline: none;
-            font-size: 1rem;
-        }
-        #user-input:focus {
-            border-color: var(--primary-blue);
-        }
-        #send-btn {
-            background-color: var(--primary-blue);
-            color: white;
-            border: none;
-            padding: 0 20px;
-            margin-left: 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-        #send-btn:hover {
-            background-color: #002244;
-        }
-        #send-btn:disabled {
-            background-color: #94a3b8;
-            cursor: not-allowed;
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
@@ -159,12 +316,17 @@
 
 <div class="chat-container">
     <div class="chat-header">
-        MDA IT Support Assistant 🤖
+        <span>MDA IT Support</span>
+        <button id="theme-toggle" title="Toggle Dark Mode">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
     </div>
     
     <div class="chat-messages" id="chat-messages">
         <div class="message bot-message">
-            <p>Hello! I am the MDA IT Helpdesk Assistant. How can I help you today? (e.g., "How do I connect to Wi-Fi?" or "My Teams camera isn't working")</p>
+            <p>Hello! I am the MDA IT Helpdesk Assistant. How can I help you today?</p>
         </div>
     </div>
     
@@ -173,32 +335,90 @@
     </div>
 
     <div id="image-preview-container">
-        <span style="font-size: 0.8rem; color: #64748b; margin-right: 10px;">📸 Image attached</span>
         <img id="image-preview" src="" alt="Preview">
-        <button id="remove-image-btn" title="Remove image">X</button>
+        <button id="remove-image-btn" title="Remove image">
+            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
     </div>
 
     <div class="chat-input-area">
-        <input type="text" id="user-input" placeholder="Type or paste a screenshot (Ctrl+V)..." autocomplete="off">
+        <input type="text" id="user-input" placeholder="Type or paste an image (Ctrl+V)..." autocomplete="off">
+        
+        <button id="mic-btn" title="Speak your question">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+        </button>
+        
         <button id="send-btn">Send</button>
     </div>
 </div>
 
 <script>
     const API_URL = 'https://vn1spddkq1.execute-api.us-east-1.amazonaws.com/chat';
+    const USER_ID = 'user-' + Math.random().toString(36).substring(2, 9);
     
+    // UI Elements
     const chatMessages = document.getElementById('chat-messages');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
     const typingIndicator = document.getElementById('typing-indicator');
-    
     const imagePreviewContainer = document.getElementById('image-preview-container');
     const imagePreview = document.getElementById('image-preview');
     const removeImageBtn = document.getElementById('remove-image-btn');
+    const themeToggle = document.getElementById('theme-toggle');
+    const micBtn = document.getElementById('mic-btn');
     
     let currentImageBase64 = null;
 
-    // Listen for Ctrl+V paste events
+    // --- Dark Mode Logic ---
+    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-theme');
+        themeToggle.innerHTML = document.body.classList.contains('dark-theme') ? sunIcon : moonIcon;
+    });
+
+    // --- Voice Recognition Logic ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = function() {
+            micBtn.classList.add('listening');
+            userInput.placeholder = "Listening...";
+        };
+
+        recognition.onspeechend = function() {
+            recognition.stop();
+            micBtn.classList.remove('listening');
+            userInput.placeholder = "Type or paste an image (Ctrl+V)...";
+        };
+
+        recognition.onresult = function(event) {
+            userInput.value = event.results[0][0].transcript;
+            sendMessage(); 
+        };
+
+        recognition.onerror = function(event) {
+            console.error("Microphone error:", event.error);
+            micBtn.classList.remove('listening');
+            userInput.placeholder = "Type or paste an image (Ctrl+V)...";
+        };
+
+        micBtn.addEventListener('click', () => recognition.start());
+    } else {
+        micBtn.style.display = 'none';
+    }
+
+    // --- Image Paste Logic ---
     userInput.addEventListener('paste', function(e) {
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
         for (let index in items) {
@@ -209,7 +429,7 @@
                 reader.onload = function(event) {
                     currentImageBase64 = event.target.result.split(',')[1];
                     imagePreview.src = event.target.result;
-                    imagePreviewContainer.style.display = 'block';
+                    imagePreviewContainer.style.display = 'flex'; // Make the chip appear!
                 };
                 reader.readAsDataURL(blob);
             }
@@ -219,10 +439,11 @@
     removeImageBtn.addEventListener('click', () => {
         currentImageBase64 = null;
         imagePreview.src = '';
-        imagePreviewContainer.style.display = 'none';
+        imagePreviewContainer.style.display = 'none'; // Hide the chip!
         userInput.focus();
     });
 
+    // --- Chat Logic ---
     userInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') sendMessage();
     });
@@ -235,7 +456,7 @@
 
         let userDisplayMessage = query;
         if (currentImageBase64) {
-            userDisplayMessage += '<br><br><span style="font-size: 0.8rem; background: #e2e8f0; color: #0f172a; padding: 2px 6px; border-radius: 4px;">📸 Image Attached</span>';
+            userDisplayMessage += '<br><br><span style="font-size: 0.75rem; background: rgba(0,0,0,0.1); padding: 4px 8px; border-radius: 4px;">📸 Image Attached</span>';
         }
 
         addMessage(userDisplayMessage, 'user');
@@ -243,7 +464,7 @@
         
         const payloadImage = currentImageBase64;
         currentImageBase64 = null;
-        imagePreviewContainer.style.display = 'none';
+        imagePreviewContainer.style.display = 'none'; // Hide chip after sending
         
         sendBtn.disabled = true;
         typingIndicator.style.display = 'block';
@@ -255,18 +476,19 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     query: query,
-                    image_base64: payloadImage 
+                    image_base64: payloadImage,
+                    user_id: USER_ID
                 })
             });
 
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error('Network error');
 
             const data = await response.json();
             addMessage(data.response, 'bot', data.escalated);
 
         } catch (error) {
             console.error('Error:', error);
-            addMessage("Sorry, I'm having trouble connecting. Please try again later.", 'bot');
+            addMessage("Sorry, I'm having trouble connecting to the network. Please try again later.", 'bot');
         } finally {
             sendBtn.disabled = false;
             typingIndicator.style.display = 'none';
@@ -275,6 +497,11 @@
     }
 
     function addMessage(text, sender, isEscalated = false) {
+        const messageWrapper = document.createElement('div');
+        messageWrapper.style.display = 'flex';
+        messageWrapper.style.flexDirection = 'column';
+        messageWrapper.style.alignItems = sender === 'user' ? 'flex-end' : 'flex-start';
+
         const messageDiv = document.createElement('div');
         messageDiv.classList.add('message');
         messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
@@ -282,14 +509,49 @@
         let innerContent = '';
         if (isEscalated) innerContent += '<div class="escalated-badge">⚠️ Human Routing Required</div>';
         
+        let displayString = text;
+        let suggestionArray = [];
+
+        if (sender === 'bot' && text.includes('SUGGESTIONS:')) {
+            const splitText = text.split('SUGGESTIONS:');
+            displayString = splitText[0].trim(); 
+            try {
+                let cleanJson = splitText[1].trim();
+                if (cleanJson.startsWith('```json')) cleanJson = cleanJson.replace(/```json/g, '').replace(/```/g, '').trim();
+                else if (cleanJson.startsWith('```')) cleanJson = cleanJson.replace(/```/g, '').trim();
+                suggestionArray = JSON.parse(cleanJson); 
+            } catch (e) {
+                console.error("Could not parse suggestions");
+            }
+        }
+
         if (sender === 'bot') {
-            innerContent += marked.parse(text); 
+            innerContent += marked.parse(displayString); 
         } else {
-            innerContent += text; 
+            innerContent += displayString; 
         }
 
         messageDiv.innerHTML = innerContent;
-        chatMessages.appendChild(messageDiv);
+        messageWrapper.appendChild(messageDiv);
+
+        if (suggestionArray.length > 0) {
+            const chipContainer = document.createElement('div');
+            chipContainer.classList.add('chip-container');
+            
+            suggestionArray.forEach(question => {
+                const btn = document.createElement('button');
+                btn.classList.add('chip-btn');
+                btn.innerText = question;
+                btn.onclick = () => {
+                    userInput.value = question;
+                    sendMessage();
+                };
+                chipContainer.appendChild(btn);
+            });
+            messageWrapper.appendChild(chipContainer);
+        }
+
+        chatMessages.appendChild(messageWrapper);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 </script>
