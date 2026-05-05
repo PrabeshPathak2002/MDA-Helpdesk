@@ -35,22 +35,17 @@
             background-color: var(--bg-color);
             color: var(--text-dark);
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             transition: background-color 0.3s ease;
         }
 
         .chat-container {
             width: 100%;
-            max-width: 480px; 
+            height: 100%;
             background: var(--chat-bg);
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06); 
             display: flex;
             flex-direction: column;
-            height: 85vh;
             overflow: hidden;
             border: 1px solid var(--border-color);
             transition: background 0.3s, border-color 0.3s;
@@ -310,18 +305,141 @@
             50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
+
+        /* Popup Modal Overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+        }
+
+        .modal-overlay.active {
+            display: block;
+        }
+
+        /* Popup Modal */
+        .chat-modal {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            width: 480px;
+            max-width: calc(100vw - 40px);
+            height: 85vh;
+            max-height: 600px;
+            z-index: 1000;
+            border-radius: 20px;
+            box-shadow: 0 5px 40px rgba(0, 0, 0, 0.16);
+            animation: slideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        .chat-modal.active {
+            display: flex;
+        }
+
+        /* Floating Button */
+        .chat-widget-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: var(--mda-blue);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(48, 100, 171, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 998;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .chat-widget-btn:hover {
+            transform: scale(1.1);
+            background-color: #234c85;
+        }
+
+        .chat-widget-btn svg {
+            width: 28px;
+            height: 28px;
+            fill: currentColor;
+        }
+
+        .chat-widget-btn.hidden {
+            display: none;
+        }
+
+        /* Close button in header */
+        .close-popup-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 8px;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: transform 0.2s;
+        }
+
+        .close-popup-btn:hover {
+            transform: rotate(90deg);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .chat-modal {
+                width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+                max-width: 100vw;
+            }
+
+            .chat-widget-btn {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
+<!-- Floating Widget Button -->
+<button class="chat-widget-btn" id="chat-widget-btn" title="Open Chat">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+</button>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" id="modal-overlay"></div>
+
+<!-- Chat Popup Modal -->
+<div class="chat-modal" id="chat-modal">
+    <div class="chat-container">
     <div class="chat-header">
-        <span>MDA IT Support</span>
-        <button id="theme-toggle" title="Toggle Dark Mode">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-        </button>
+        <img src="logo.svg" alt="MDA Logo" style="height: 50px; width: auto;">
+        <span>IT Assistant</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="theme-toggle" title="Toggle Dark Mode">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+            <button class="close-popup-btn" id="close-popup-btn" title="Close Chat">✕</button>
+        </div>
     </div>
     
     <div class="chat-messages" id="chat-messages">
@@ -554,7 +672,32 @@
         chatMessages.appendChild(messageWrapper);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+
+    // --- Popup Modal Logic ---
+    const chatWidgetBtn = document.getElementById('chat-widget-btn');
+    const chatModal = document.getElementById('chat-modal');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const closePopupBtn = document.getElementById('close-popup-btn');
+
+    function openChat() {
+        chatModal.classList.add('active');
+        modalOverlay.classList.add('active');
+        chatWidgetBtn.classList.add('hidden');
+    }
+
+    function closeChat() {
+        chatModal.classList.remove('active');
+        modalOverlay.classList.remove('active');
+        chatWidgetBtn.classList.remove('hidden');
+    }
+
+    chatWidgetBtn.addEventListener('click', openChat);
+    closePopupBtn.addEventListener('click', closeChat);
+    modalOverlay.addEventListener('click', closeChat);
 </script>
+
+    </div>
+</div>
 
 </body>
 </html>
